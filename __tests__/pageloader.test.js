@@ -39,10 +39,29 @@ describe('page loader test', () => {
   });
 
   test('page not found', async () => {
+    const address = '/notfound';
     nock(host)
-      .get('/notfound')
+      .get(address)
       .reply(404);
 
-    return pageloader('/notfound', testFolderPath).catch((e) => expect(e).toBe(404));
+    return pageloader(address, testFolderPath).catch((e) => expect(e).toBe(404));
+  });
+
+  test('w3.org', async () => {
+    // https://www.w3.org
+    const address = '/www.w3.org';
+    const fileName = 'www-w3-org.html';
+    const dataBefore = await fs.readFile(path.join(pathToTest, 'www-w3-org-before.html'), 'utf-8');
+    const dataAfter = await fs.readFile(path.join(pathToTest, 'www-w3-org-after.html'), 'utf-8');
+
+    nock(host)
+      .get(address)
+      .reply(200, dataBefore);
+
+    await pageloader(address, testFolderPath);
+
+    const content = await fs.readFile(path.join(testFolderPath, fileName), 'utf-8');
+
+    expect(content).toEqual(dataAfter);
   });
 });
