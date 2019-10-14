@@ -22,7 +22,7 @@ describe('page loader test', () => {
     testFolderPath = await fs.mkdtemp(path.join(tmpDirectory, 'test-'));
   });
 
-  test('hexlet io', async () => {
+  test('hexlet.io download page', async () => {
     const testPage = 'ru-hexlet-io-courses.html';
     const address = '/ru.hexlet.io/courses';
     const data = await fs.readFile(path.join(pathToTest, testPage), 'utf-8');
@@ -39,8 +39,6 @@ describe('page loader test', () => {
   });
 
   test('page not found', async () => {
-    testFolderPath = await fs.mkdtemp(path.join(tmpDirectory, 'test-'));
-
     nock(host)
       .get('/notfound')
       .reply(404);
