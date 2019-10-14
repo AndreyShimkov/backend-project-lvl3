@@ -9,11 +9,12 @@ const normalizeName = (name) => {
 };
 
 const pageloader = (pageAddress, outputDirectory) => {
-  console.log('ready!'); // delete this!!!
+  console.log('Ready...'); // delete this!!!
   return axios.get(pageAddress)
     .then((response) => {
       const name = path.resolve(outputDirectory, normalizeName(pageAddress));
-      return fs.writeFile(name, response.data, 'utf-8');
+      return fs.writeFile(name, response.data, 'utf-8')
+        .then(console.log('Done!'));
     })
     .catch((error) => {
       if (error.response) {
