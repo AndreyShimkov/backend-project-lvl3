@@ -8,5 +8,7 @@ lint:
 	npm run eslint ./
 test:
 	npm test
+coverage:
+	npx jest --coverage
 publish:
 	npm publish --dry-run

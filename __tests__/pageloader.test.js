@@ -1,5 +1,5 @@
 import '@babel/polyfill';
-// import os from 'os';
+import os from 'os';
 import path from 'path';
 import { promises as fs } from 'fs';
 import axios from 'axios';
@@ -12,31 +12,39 @@ const host = 'http://localhost';
 axios.defaults.host = host;
 axios.defaults.adapter = httpAdapter;
 
-// const tmpDirectory = os.tmpdir();
+const tmpDirectory = os.tmpdir();
 const pathToTest = '__tests__/__fixtures__/';
 
-const tests = [
-  ['hexlet', '/ru.hexlet.io/courses', 'ru-hexlet-io-courses.html'],
-  ['yandex', '/yandex.ru', 'yandex-ru.html'],
-];
+describe('page loader test', () => {
+  let testFolderPath;
 
-describe.each(tests)('page loader test', (name, address, testPage) => {
   beforeEach(async () => {
-    // const folderPath = await fs.mkdtemp(tmpDirectory, 'test_');
+    testFolderPath = await fs.mkdtemp(path.join(tmpDirectory, 'test-'));
+  });
+
+  test('hexlet io', async () => {
+    const testPage = 'ru-hexlet-io-courses.html';
+    const address = '/ru.hexlet.io/courses';
     const data = await fs.readFile(path.join(pathToTest, testPage), 'utf-8');
 
     nock(host)
       .get(address)
       .reply(200, data);
-  });
 
-  it(name, async () => {
-    const data = await fs.readFile(path.join(pathToTest, testPage), 'utf-8');
+    await pageloader(address, testFolderPath);
 
-    await pageloader(`http://localhost${address}`, 'F:/Hexlet');
-
-    const content = await fs.readFile(`F:/Hexlet/localhost-${testPage}`, 'utf-8');
+    const content = await fs.readFile(path.join(testFolderPath, testPage), 'utf-8');
 
     expect(content).toEqual(data);
+  });
+
+  test('page not found', async () => {
+    testFolderPath = await fs.mkdtemp(path.join(tmpDirectory, 'test-'));
+
+    nock(host)
+      .get('/notfound')
+      .reply(404);
+
+    return pageloader('/notfound', testFolderPath).catch((e) => expect(e).toBe(404));
   });
 });

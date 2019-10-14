@@ -10,7 +10,6 @@ commander
   .arguments('<address>')
   .action((address) => {
     pageloader(address, commander.output);
-    // console.log(result);
   });
 
 export default commander;

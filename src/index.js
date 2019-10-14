@@ -8,19 +8,20 @@ const normalizeName = (name) => {
   return `${pageName.split('').map((e) => (!st.test(e) ? '-' : e)).join('')}.html`;
 };
 
-const getPage = (pageAddress, outputDirectory) => {
+const pageloader = (pageAddress, outputDirectory) => {
   console.log('ready!'); // delete this!!!
   return axios.get(pageAddress)
     .then((response) => {
-      const name = path.join(outputDirectory, normalizeName(pageAddress));
+      const name = path.resolve(outputDirectory, normalizeName(pageAddress));
       return fs.writeFile(name, response.data, 'utf-8');
     })
     .catch((error) => {
       if (error.response) {
-        console.log(`Error ${error.response.status}`);
+        console.log(`Error response ${error.response.status}`);
+        throw error.response.status;
       }
-      console.log(error);
+      throw error;
     });
 };
 
-export default getPage;
+export default pageloader;
