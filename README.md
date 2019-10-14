@@ -16,4 +16,4 @@ Web page download application
 
 > page-loader -o /home https://ru.hexlet.io/courses
 
-[![asciicast](https://asciinema.org/a/0ce77ff9-4dd6-46ce-8fba-b9708f2f5ba1.png)](https://asciinema.org/a/0ce77ff9-4dd6-46ce-8fba-b9708f2f5ba1)
+[![asciicast](https://asciinema.org/a/GuV9ZvliuBCgOd1pdTsREHve2.svg)](https://asciinema.org/a/GuV9ZvliuBCgOd1pdTsREHve2)
