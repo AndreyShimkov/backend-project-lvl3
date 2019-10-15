@@ -21,7 +21,7 @@ describe('page loader test', () => {
   beforeEach(async () => {
     testFolderPath = await fs.mkdtemp(path.join(tmpDirectory, 'test-'));
   });
-
+  /*
   test('hexlet.io download page', async () => {
     const testPage = 'ru-hexlet-io-courses.html';
     const address = '/ru.hexlet.io/courses';
@@ -46,7 +46,7 @@ describe('page loader test', () => {
 
     return pageloader(address, testFolderPath).catch((e) => expect(e).toBe(404));
   });
-  /*
+  */
   test('Template', async () => {
     // https://www.templatemo.com
     const address = '/chilling_cafe';
@@ -65,5 +65,4 @@ describe('page loader test', () => {
 
     expect(content).toEqual(dataAfter);
   });
-  */
 });
