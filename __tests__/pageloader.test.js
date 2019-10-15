@@ -46,13 +46,14 @@ describe('page loader test', () => {
 
     return pageloader(address, testFolderPath).catch((e) => expect(e).toBe(404));
   });
-
-  test('w3.org', async () => {
-    // https://www.w3.org
-    const address = '/www.w3.org';
-    const fileName = 'www-w3-org.html';
-    const dataBefore = await fs.readFile(path.join(pathToTest, 'www-w3-org-before.html'), 'utf-8');
-    const dataAfter = await fs.readFile(path.join(pathToTest, 'www-w3-org-after.html'), 'utf-8');
+  /*
+  test('Template', async () => {
+    // https://www.templatemo.com
+    const address = '/chilling_cafe';
+    const fileNameBefore = 'chilling-cafe-before.html';
+    const fileNameAfter = 'chilling-cafe.html';
+    const dataBefore = await fs.readFile(path.join(pathToTest, fileNameBefore), 'utf-8');
+    const dataAfter = await fs.readFile(path.join(pathToTest, fileNameAfter), 'utf-8');
 
     nock(host)
       .get(address)
@@ -60,8 +61,9 @@ describe('page loader test', () => {
 
     await pageloader(address, testFolderPath);
 
-    const content = await fs.readFile(path.join(testFolderPath, fileName), 'utf-8');
+    const content = await fs.readFile(path.join(testFolderPath, fileNameAfter), 'utf-8');
 
     expect(content).toEqual(dataAfter);
   });
+  */
 });
