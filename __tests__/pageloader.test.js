@@ -63,6 +63,8 @@ describe('page loader test', () => {
 
     const content = await fs.readFile(path.join(testFolderPath, fileNameAfter), 'utf-8');
 
+    console.log(testFolderPath);
+
     expect(content).toEqual(dataAfter);
   });
 });

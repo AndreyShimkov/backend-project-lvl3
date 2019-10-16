@@ -22,28 +22,42 @@ const getPage = (request) => axios.get(request)
 const writePage = (data, pathToFile) => fs.writeFile(pathToFile, data, 'utf-8')
   .then(console.log('Done!'));
 
-const dataHandling = (data, page, directory) => {
+// link = href, img = src, script = src
+
+const tags = [
+  {
+    name: 'link',
+    attribute: 'href',
+  }, {
+    name: 'img',
+    attribute: 'src',
+  },
+];
+
+const dataHandling = (data, directory) => {
   const $ = cheerio.load(data);
-  $('link').attr('href', (i, v) => {
-    const link = url.parse(v);
-    if (page.host === link.host || link.host === null) {
-      const localData = getPage(`${page.protocol}//${page.host}${link.path}`);
-      const pathToFile = path.resolve(directory, `${normalizeName(link.path)}`);
-      console.log(pathToFile);
-      fs.writeFile(localData, pathToFile, 'utf-8');
-      return pathToFile;
-    }
-    return v;
+  const links = [];
+  tags.forEach((tag) => {
+    $(tag.name).attr(tag.attribute, (i, element) => {
+      if (element.indexOf('http') !== 0) {
+        links.push(element);
+        const filepath = path.parse(element);
+        const newBaseName = normalizeName(`${filepath.dir}/${filepath.name}`).slice(1);
+        return `${directory}/${newBaseName}${filepath.ext}`;
+      }
+      return element;
+    });
   });
-  return $.html();
+  return { data: $.html(), links };
 };
 
 const pageloader = (address, directory) => getPage(address)
   .then((data) => {
     const page = url.parse(address);
-    const pathToFile = path.resolve(directory, `${normalizeName(`${page.host}${page.path}`)}.html`);
-    const newData = dataHandling(data, page, directory);
-    return writePage(newData, pathToFile);
+    const baseName = normalizeName(`${page.host}${page.path}`);
+    const pathToFile = path.resolve(directory, `${baseName}.html`);
+    const newData = dataHandling(data, `${baseName}_files`); // _files
+    return writePage(newData.data, pathToFile);
   });
 
 export default pageloader;

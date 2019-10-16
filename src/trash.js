@@ -1,17 +1,6 @@
 /*
 const elements = ['script', 'link'];
 
-const linkHandling = (link, dir) => {
-  if (link.indexOf('http') >= 0) {
-    return link;
-  }
-  return axios.get(link)
-    .then((responce) => {
-      console.log(responce.path);
-    })
-    .catch((error) => console.log(error));
-};
-
 // GET request for remote image
 axios({
   method: 'get',
