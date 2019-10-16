@@ -7,7 +7,7 @@ import nock from 'nock';
 import httpAdapter from 'axios/lib/adapters/http';
 import pageloader from '../src';
 
-const host = 'http://localhost';
+const host = 'http://testhost.com';
 
 axios.defaults.host = host;
 axios.defaults.adapter = httpAdapter;
@@ -39,7 +39,7 @@ describe('page loader test', () => {
   });
 
   test('page not found', async () => {
-    const address = '/notfound';
+    const address = 'notfound';
     nock(host)
       .get(address)
       .reply(404);
@@ -51,7 +51,7 @@ describe('page loader test', () => {
     // https://www.templatemo.com
     const address = '/chilling_cafe';
     const fileNameBefore = 'chilling-cafe-before.html';
-    const fileNameAfter = 'chilling-cafe.html';
+    const fileNameAfter = 'testhost-com-chilling-cafe.html';
     const dataBefore = await fs.readFile(path.join(pathToTest, fileNameBefore), 'utf-8');
     const dataAfter = await fs.readFile(path.join(pathToTest, fileNameAfter), 'utf-8');
 
@@ -59,7 +59,7 @@ describe('page loader test', () => {
       .get(address)
       .reply(200, dataBefore);
 
-    await pageloader(address, testFolderPath);
+    await pageloader(`${host}${address}`, testFolderPath);
 
     const content = await fs.readFile(path.join(testFolderPath, fileNameAfter), 'utf-8');
 

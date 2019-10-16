@@ -1,76 +1,49 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import axios from 'axios';
+import url from 'url';
 import cheerio from 'cheerio';
-import { request } from 'http';
 
 const normalizeName = (name) => {
   const st = new RegExp('[a-zA-Z0-9]');
-  const pageName = name.slice(name.indexOf('//') + 2);
-  return pageName.split('').map((e) => (!st.test(e) ? '-' : e)).join('');
+  return name.split('').map((e) => (!st.test(e) ? '-' : e)).join('');
 };
 
-const elements = ['script', 'link'];
-
-const linkHandling = (link, dir) => {
-  if (link.indexOf('http') >= 0) {
-    return link;
-  }
-  return axios.get(path.resolve('http://', link))
-    .then(console.log(request.path))
-    .then(link.replace(link, dir));
-};
-/*
-// GET request for remote image
-axios({
-  method: 'get',
-  url: 'http://bit.ly/2mTM3nY',
-  responseType: 'stream'
-})
-  .then(function (response) {
-    response.data.pipe(fs.createWriteStream('ada_lovelace.jpg'))
+const getPage = (request) => axios.get(request)
+  .then((response) => response.data)
+  .catch((error) => {
+    if (error.response) {
+      console.log(`Error response ${error.response.status}`);
+      throw error.response.status;
+    }
+    throw error;
   });
-*/
-const changeAttribute = [
-  {
-    checkType: (type, cheer) => type === 'img' && cheer('img').attr('src'),
-    builder: (tags, dirName) => tags.attr('src', (i, a) => linkHandling(a, dirName)),
-  }, {
-    checkType: (type, cheer) => type === 'link' && cheer('link').attr('href'),
-    builder: (tags, dirName) => tags.attr('href', (i, a) => linkHandling(a, dirName)),
-  }, {
-    checkType: (type, cheer) => type === 'script' && cheer('script').attr('src'),
-    builder: (tags, dirName) => tags.attr('src', (i, a) => linkHandling(a, dirName)),
-  }, {
-    checkType: (type, cheer) => cheer(type),
-    builder: (tags) => tags,
-  },
-];
 
-const dataHandling = (data, dirName) => {
+const writePage = (data, pathToFile) => fs.writeFile(pathToFile, data, 'utf-8')
+  .then(console.log('Done!'));
+
+const dataHandling = (data, page, directory) => {
   const $ = cheerio.load(data);
-  elements.forEach((el) => {
-    const { builder } = changeAttribute.find(({ checkType }) => checkType(el, $));
-    builder($(el), dirName);
+  $('link').attr('href', (i, v) => {
+    const link = url.parse(v);
+    if (page.host === link.host || link.host === null) {
+      const localData = getPage(`${page.protocol}//${page.host}${link.path}`);
+      const pathToFile = path.resolve(directory, `${normalizeName(link.path)}`);
+      console.log(pathToFile);
+      fs.writeFile(localData, pathToFile, 'utf-8');
+      return pathToFile;
+    }
+    return v;
   });
   return $.html();
 };
 
-const pageloader = (pageAddress, outputDirectory) => {
-  console.log('Ready...'); // delete this!!!
-  return axios.get(pageAddress)
-    .then((response) => {
-      const pathToFile = path.resolve(outputDirectory, `${normalizeName(pageAddress)}.html`);
-      return fs.writeFile(pathToFile, dataHandling(response.data, normalizeName(pageAddress)), 'utf-8')
-        .then(console.log('Done!'));
-    })
-    .catch((error) => {
-      if (error.response) {
-        console.log(`Error response ${error.response.status}`);
-        throw error.response.status;
-      }
-      throw error;
-    });
-};
+const pageloader = (address, directory) => getPage(address)
+  .then((data) => {
+    const page = url.parse(address);
+    const pathToFile = path.resolve(directory, `${normalizeName(`${page.host}${page.path}`)}.html`);
+    const newData = dataHandling(data, page, directory);
+    return writePage(newData, pathToFile);
+  });
 
 export default pageloader;
