@@ -21,47 +21,40 @@ describe('page loader test', () => {
   beforeEach(async () => {
     testFolderPath = await fs.mkdtemp(path.join(tmpDirectory, 'test-'));
   });
-  /*
-  test('hexlet.io download page', async () => {
-    const testPage = 'ru-hexlet-io-courses.html';
-    const address = '/ru.hexlet.io/courses';
-    const data = await fs.readFile(path.join(pathToTest, testPage), 'utf-8');
 
-    nock(host)
-      .get(address)
-      .reply(200, data);
-
-    await pageloader(address, testFolderPath);
-
-    const content = await fs.readFile(path.join(testFolderPath, testPage), 'utf-8');
-
-    expect(content).toEqual(data);
-  });
-
-  test('page not found', async () => {
-    const address = 'notfound';
-    nock(host)
-      .get(address)
-      .reply(404);
-
-    return pageloader(address, testFolderPath).catch((e) => expect(e).toBe(404));
-  });
-  */
-  test('Template', async () => {
+  test('Template Site', async () => {
     // https://www.templatemo.com
-    const address = '/chilling_cafe';
-    const fileNameBefore = 'chilling-cafe-before.html';
+    const testPage = '/chilling_cafe';
+
+    const addresses = ['/chilling_cafe',
+      '/chilling/fontawesome/css/all.min.css',
+      '/chilling/css/tooplate-chilling-cafe.css',
+      '/chilling/js/jquery',
+      '/chilling/img/chilling-cafe-11.jpg',
+      '/chilling/img/chilling-cafe-12.jpg',
+      '/chilling/img/chilling-cafe-13.jpg',
+    ];
+
+    const fileNameBefore = 'chilling_cafe.html';
     const fileNameAfter = 'testhost-com-chilling-cafe.html';
+    const directoryName = 'testhost-com-chilling-cafe_files';
+
     const dataBefore = await fs.readFile(path.join(pathToTest, fileNameBefore), 'utf-8');
     const dataAfter = await fs.readFile(path.join(pathToTest, fileNameAfter), 'utf-8');
 
-    nock(host)
-      .get(address)
-      .reply(200, dataBefore);
+    addresses.forEach((address) => {
+      nock(host)
+        .get(address)
+        .reply(200, dataBefore);
+    });
 
-    await pageloader(`${host}${address}`, testFolderPath);
+    await pageloader(`${host}${testPage}`, testFolderPath);
 
     const content = await fs.readFile(path.join(testFolderPath, fileNameAfter), 'utf-8');
+
+    const filelist = await fs.readdir(path.join(testFolderPath, directoryName));
+
+    console.log(filelist);
 
     console.log(testFolderPath);
 
