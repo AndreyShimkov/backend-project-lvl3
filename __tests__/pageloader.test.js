@@ -23,9 +23,6 @@ describe('page loader test', () => {
   });
 
   test('Template Site', async () => {
-    // https://www.templatemo.com
-    const testPage = '/chilling_cafe';
-
     const addresses = ['/chilling_cafe',
       '/chilling/fontawesome/css/all.min.css',
       '/chilling/css/tooplate-chilling-cafe.css',
@@ -35,29 +32,28 @@ describe('page loader test', () => {
       '/chilling/img/chilling-cafe-13.jpg',
     ];
 
-    const fileNameBefore = 'chilling_cafe.html';
     const fileNameAfter = 'testhost-com-chilling-cafe.html';
-    const directoryName = 'testhost-com-chilling-cafe_files';
+    // const directoryName = 'testhost-com-chilling-cafe_files';
 
-    const dataBefore = await fs.readFile(path.join(pathToTest, fileNameBefore), 'utf-8');
-    const dataAfter = await fs.readFile(path.join(pathToTest, fileNameAfter), 'utf-8');
-
-    addresses.forEach((address) => {
+    addresses.forEach(async (address, i) => {
+      const fileName = path.join(pathToTest, address);
+      const dataBefore = i > 3 ? await fs.readFile(fileName) : await fs.readFile(fileName, 'utf-8');
+      console.log(i, dataBefore);
       nock(host)
         .get(address)
         .reply(200, dataBefore);
     });
 
-    await pageloader(`${host}${testPage}`, testFolderPath);
+    await pageloader(`${host}${addresses[0]}`, testFolderPath);
 
-    const content = await fs.readFile(path.join(testFolderPath, fileNameAfter), 'utf-8');
+    const testAfter = await fs.readFile(path.join(pathToTest, fileNameAfter), 'utf-8');
+    const pageloaderData = await fs.readFile(path.join(testFolderPath, fileNameAfter), 'utf-8');
+    // const filelist = await fs.readdir(path.join(testFolderPath, directoryName));
 
-    const filelist = await fs.readdir(path.join(testFolderPath, directoryName));
-
-    console.log(filelist);
+    // console.log(filelist);
 
     console.log(testFolderPath);
 
-    expect(content).toEqual(dataAfter);
+    expect(pageloaderData).toEqual(testAfter);
   });
 });
