@@ -32,19 +32,25 @@ describe('page loader test', () => {
       '/chilling/img/chilling-cafe-13.jpg',
     ];
 
-    const fileNameAfter = 'testhost-com-chilling-cafe.html';
-    // const directoryName = 'testhost-com-chilling-cafe_files';
+    const promises = addresses.map((v, i) => {
+      const fileName = path.join(pathToTest, v);
+      const testFileData = i > 3 ? fs.readFile(fileName) : fs.readFile(fileName, 'utf-8');
+      return testFileData;
+    });
 
-    addresses.forEach(async (address, i) => {
-      const fileName = path.join(pathToTest, address);
-      const dataBefore = i > 3 ? await fs.readFile(fileName) : await fs.readFile(fileName, 'utf-8');
-      console.log(i, dataBefore);
+    const tests = await Promise.all(promises);
+
+    addresses.forEach((address, i) => {
+      const dataBefore = tests[i];
       nock(host)
         .get(address)
         .reply(200, dataBefore);
     });
 
     await pageloader(`${host}${addresses[0]}`, testFolderPath);
+
+    const fileNameAfter = 'testhost-com-chilling-cafe.html';
+    // const directoryName = 'testhost-com-chilling-cafe_files';
 
     const testAfter = await fs.readFile(path.join(pathToTest, fileNameAfter), 'utf-8');
     const pageloaderData = await fs.readFile(path.join(testFolderPath, fileNameAfter), 'utf-8');
