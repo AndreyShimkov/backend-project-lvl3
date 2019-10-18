@@ -33,6 +33,15 @@ describe('page loader test', () => {
       '/chilling/img/chilling-cafe-13.jpg',
     ];
 
+    const filesTest = [
+      'chilling-css-tooplate-chilling-cafe.css',
+      'chilling-fontawesome-css-all-min.css',
+      'chilling-img-chilling-cafe-11.jpg',
+      'chilling-img-chilling-cafe-12.jpg',
+      'chilling-img-chilling-cafe-13.jpg',
+      'chilling-js-jquery',
+    ];
+
     const promises = addresses.map((v, i) => {
       const fileName = path.join(pathToTest, v);
       const testFileData = i > 3 ? fs.readFile(fileName) : fs.readFile(fileName, 'utf-8');
@@ -57,10 +66,8 @@ describe('page loader test', () => {
     const pageloaderData = await fs.readFile(path.join(testFolderPath, fileNameAfter), 'utf-8');
     const filelist = await fs.readdir(path.join(testFolderPath, directoryName));
 
-    console.log(filelist);
-
-    // console.log(testFolderPath);
-
     expect(pageloaderData).toEqual(testAfter);
+
+    expect(filelist).toEqual(filesTest);
   });
 });

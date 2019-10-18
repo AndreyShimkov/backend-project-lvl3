@@ -19,6 +19,16 @@ const getPage = (request, responseHandler) => axios.get(request)
     throw error;
   });
 
+const getPicture = (request, responseHandler) => axios(request)
+  .then(responseHandler)
+  .catch((error) => {
+    if (error.response) {
+      console.log(`Error response ${error.response.status}`);
+      throw error.response.status;
+    }
+    throw error;
+  });
+
 const writePage = (data, pathToFile) => fs.writeFile(pathToFile, data, 'utf-8')
   .then(console.log('Done!'));
 
@@ -30,6 +40,7 @@ const tags = [
     attribute: 'href',
     requestBuilder: (address) => address,
     responseHandler: (filepath) => (response) => fs.writeFile(filepath, response.data, 'utf-8'),
+    fn: getPage,
   }, {
     name: 'img',
     attribute: 'src',
@@ -39,11 +50,13 @@ const tags = [
       responseType: 'stream',
     }),
     responseHandler: (filepath) => (response) => response.data.pipe(writeStream(filepath)),
+    fn: getPicture,
   }, {
     name: 'script',
     attribute: 'src',
     requestBuilder: (address) => address,
     responseHandler: (filepath) => (response) => fs.writeFile(filepath, response.data, 'utf-8'),
+    fn: getPage,
   },
 ];
 
@@ -60,13 +73,11 @@ const dataHandling = (data, base, directory, address) => {
         const newBaseName = normalizeName(`${linkPath.dir}/${linkPath.name}`).slice(1);
         const newfilePath = `${base}_files/${newBaseName}${linkPath.ext}`;
 
-        console.log(tag.requestBuilder(`${page.protocol}//${page.host}${att}`));
-        if (tag.name !== 'img') {
-          const promise = getPage(tag.requestBuilder(`${page.protocol}//${page.host}${att}`),
-            tag.responseHandler(path.resolve(directory, newfilePath)));
+        const promise = tag.fn(tag.requestBuilder(`${page.protocol}//${page.host}${att}`),
+          tag.responseHandler(path.resolve(directory, newfilePath)));
 
-          promises.push(promise);
-        }
+        promises.push(promise);
+
 
         $(element).attr(tag.attribute, newfilePath);
       }
