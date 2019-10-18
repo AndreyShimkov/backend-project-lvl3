@@ -4,6 +4,7 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import axios from 'axios';
 import nock from 'nock';
+// import _ from 'lodash';
 import httpAdapter from 'axios/lib/adapters/http';
 import pageloader from '../src';
 
@@ -50,15 +51,15 @@ describe('page loader test', () => {
     await pageloader(`${host}${addresses[0]}`, testFolderPath);
 
     const fileNameAfter = 'testhost-com-chilling-cafe.html';
-    // const directoryName = 'testhost-com-chilling-cafe_files';
+    const directoryName = 'testhost-com-chilling-cafe_files';
 
     const testAfter = await fs.readFile(path.join(pathToTest, fileNameAfter), 'utf-8');
     const pageloaderData = await fs.readFile(path.join(testFolderPath, fileNameAfter), 'utf-8');
-    // const filelist = await fs.readdir(path.join(testFolderPath, directoryName));
+    const filelist = await fs.readdir(path.join(testFolderPath, directoryName));
 
-    // console.log(filelist);
+    console.log(filelist);
 
-    console.log(testFolderPath);
+    // console.log(testFolderPath);
 
     expect(pageloaderData).toEqual(testAfter);
   });

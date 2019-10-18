@@ -1,4 +1,4 @@
-import { promises as fs } from 'fs';
+import { promises as fs, createWriteStream as writeStream } from 'fs';
 import path from 'path';
 import axios from 'axios';
 import url from 'url';
@@ -38,7 +38,7 @@ const tags = [
       url: address,
       responseType: 'stream',
     }),
-    responseHandler: (filepath) => (response) => response.data.pipe(fs.createWriteStream(filepath)),
+    responseHandler: (filepath) => (response) => response.data.pipe(writeStream(filepath)),
   }, {
     name: 'script',
     attribute: 'src',
@@ -47,9 +47,10 @@ const tags = [
   },
 ];
 
-const dataHandling = (data, directory) => {
+const dataHandling = (data, base, directory, address) => {
   const $ = cheerio.load(data);
   const promises = [];
+  const page = url.parse(address);
 
   tags.forEach((tag) => {
     $(tag.name).each((i, element) => {
@@ -57,31 +58,35 @@ const dataHandling = (data, directory) => {
       if (att && url.parse(att).protocol === null) {
         const linkPath = path.parse(att);
         const newBaseName = normalizeName(`${linkPath.dir}/${linkPath.name}`).slice(1);
-        const newfilePath = `${directory}/${newBaseName}${linkPath.ext}`;
+        const newfilePath = `${base}_files/${newBaseName}${linkPath.ext}`;
 
-        console.log(path.resolve(newfilePath));
+        console.log(tag.requestBuilder(`${page.protocol}//${page.host}${att}`));
+        if (tag.name !== 'img') {
+          const promise = getPage(tag.requestBuilder(`${page.protocol}//${page.host}${att}`),
+            tag.responseHandler(path.resolve(directory, newfilePath)));
 
-        // const promise = getPage(tag.requestBuilder(att),
-        //  tag.responseHandler(path.resolve(newfilePath)));
-
-        // promises.push(promise);
+          promises.push(promise);
+        }
 
         $(element).attr(tag.attribute, newfilePath);
       }
     });
   });
-
-  return { data: $.html(), promises };
+  const pathToFile = path.resolve(directory, `${base}.html`);
+  promises.push(writePage($.html(), pathToFile));
+  return promises;
 };
 
 const pageloader = (address, directory) => getPage(address, (response) => response.data)
   .then((data) => {
-    console.log(data);
     const page = url.parse(address);
+
     const baseName = normalizeName(`${page.host}${page.path}`);
-    const pathToFile = path.resolve(directory, `${baseName}.html`);
-    const newData = dataHandling(data, `${baseName}_files`); // _files
-    return writePage(newData.data, pathToFile);
+
+    const promises = dataHandling(data, baseName, directory, address);
+
+    return fs.mkdir(path.resolve(directory, `${baseName}_files`))
+      .then(Promise.all(promises));
   });
 
 export default pageloader;
