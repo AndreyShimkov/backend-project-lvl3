@@ -9,54 +9,34 @@ const normalizeName = (name) => {
   return name.split('').map((e) => (!st.test(e) ? '-' : e)).join('');
 };
 
-const getPage = (request, responseHandler) => axios.get(request)
-  .then(responseHandler)
-  .catch((error) => {
-    if (error.response) {
-      console.log(`Error response ${error.response.status}`);
-      throw error.response.status;
-    }
-    throw error;
-  });
+const getElement = (request, filepath) => axios.get(request)
+  .then((response) => fs.writeFile(filepath, response.data, 'utf-8'))
+  .catch((e) => console.log(e));
 
-const getPicture = (request, responseHandler) => axios(request)
-  .then(responseHandler)
-  .catch((error) => {
-    if (error.response) {
-      console.log(`Error response ${error.response.status}`);
-      throw error.response.status;
-    }
-    throw error;
-  });
+const getPicture = (request, filepath) => axios({
+  method: 'get',
+  url: request,
+  responseType: 'stream',
+})
+  .then((response) => response.data.pipe(writeStream(filepath)))
+  .catch((e) => console.log(e));
 
 const writePage = (data, pathToFile) => fs.writeFile(pathToFile, data, 'utf-8')
   .then(console.log('Done!'));
-
-// link = href, img = src, script = src
 
 const tags = [
   {
     name: 'link',
     attribute: 'href',
-    requestBuilder: (address) => address,
-    responseHandler: (filepath) => (response) => fs.writeFile(filepath, response.data, 'utf-8'),
-    fn: getPage,
+    downloader: getElement,
   }, {
     name: 'img',
     attribute: 'src',
-    requestBuilder: (address) => ({
-      method: 'get',
-      url: address,
-      responseType: 'stream',
-    }),
-    responseHandler: (filepath) => (response) => response.data.pipe(writeStream(filepath)),
-    fn: getPicture,
+    downloader: getPicture,
   }, {
     name: 'script',
     attribute: 'src',
-    requestBuilder: (address) => address,
-    responseHandler: (filepath) => (response) => fs.writeFile(filepath, response.data, 'utf-8'),
-    fn: getPage,
+    downloader: getElement,
   },
 ];
 
@@ -73,8 +53,8 @@ const dataHandling = (data, base, directory, address) => {
         const newBaseName = normalizeName(`${linkPath.dir}/${linkPath.name}`).slice(1);
         const newfilePath = `${base}_files/${newBaseName}${linkPath.ext}`;
 
-        const promise = tag.fn(tag.requestBuilder(`${page.protocol}//${page.host}${att}`),
-          tag.responseHandler(path.resolve(directory, newfilePath)));
+        const promise = tag.downloader(`${page.protocol}//${page.host}${att}`,
+          path.resolve(directory, newfilePath));
 
         promises.push(promise);
 
@@ -88,13 +68,13 @@ const dataHandling = (data, base, directory, address) => {
   return promises;
 };
 
-const pageloader = (address, directory) => getPage(address, (response) => response.data)
-  .then((data) => {
+const pageloader = (address, directory) => axios.get(address)
+  .then((response) => {
     const page = url.parse(address);
 
     const baseName = normalizeName(`${page.host}${page.path}`);
 
-    const promises = dataHandling(data, baseName, directory, address);
+    const promises = dataHandling(response.data, baseName, directory, address);
 
     return fs.mkdir(path.resolve(directory, `${baseName}_files`))
       .then(Promise.all(promises));
