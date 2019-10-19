@@ -4,7 +4,6 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import axios from 'axios';
 import nock from 'nock';
-// import _ from 'lodash';
 import httpAdapter from 'axios/lib/adapters/http';
 import pageloader from '../src';
 

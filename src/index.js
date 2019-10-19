@@ -21,9 +21,6 @@ const getPicture = (request, filepath) => axios({
   .then((response) => response.data.pipe(writeStream(filepath)))
   .catch((e) => console.log(e));
 
-const writePage = (data, pathToFile) => fs.writeFile(pathToFile, data, 'utf-8')
-  .then(console.log('Done!'));
-
 const tags = [
   {
     name: 'link',
@@ -40,43 +37,35 @@ const tags = [
   },
 ];
 
-const dataHandling = (data, base, directory, address) => {
-  const $ = cheerio.load(data);
-  const promises = [];
-  const page = url.parse(address);
-
-  tags.forEach((tag) => {
-    $(tag.name).each((i, element) => {
-      const att = $(element).attr(tag.attribute);
-      if (att && url.parse(att).protocol === null) {
-        const linkPath = path.parse(att);
-        const newBaseName = normalizeName(`${linkPath.dir}/${linkPath.name}`).slice(1);
-        const newfilePath = `${base}_files/${newBaseName}${linkPath.ext}`;
-
-        const promise = tag.downloader(`${page.protocol}//${page.host}${att}`,
-          path.resolve(directory, newfilePath));
-
-        promises.push(promise);
-
-
-        $(element).attr(tag.attribute, newfilePath);
-      }
-    });
-  });
-  const pathToFile = path.resolve(directory, `${base}.html`);
-  promises.push(writePage($.html(), pathToFile));
-  return promises;
-};
-
-const pageloader = (address, directory) => axios.get(address)
+const pageloader = (address, targetDirectory) => axios.get(address)
   .then((response) => {
     const page = url.parse(address);
-
     const baseName = normalizeName(`${page.host}${page.path}`);
+    const $ = cheerio.load(response.data);
+    const promises = [];
 
-    const promises = dataHandling(response.data, baseName, directory, address);
+    tags.forEach((tag) => {
+      $(tag.name).each((i, element) => {
+        const att = $(element).attr(tag.attribute);
+        if (att && url.parse(att).protocol === null) {
+          const linkPath = path.parse(att);
+          const newBaseName = normalizeName(`${linkPath.dir}/${linkPath.name}`).slice(1);
+          const newfilePath = `${baseName}_files/${newBaseName}${linkPath.ext}`;
 
-    return fs.mkdir(path.resolve(directory, `${baseName}_files`))
+          const promise = tag.downloader(`${page.protocol}//${page.host}${att}`,
+            path.resolve(targetDirectory, newfilePath));
+
+          promises.push(promise);
+
+          $(element).attr(tag.attribute, newfilePath);
+        }
+      });
+    });
+
+    const pathToFile = path.resolve(targetDirectory, `${baseName}.html`);
+    promises.push(fs.writeFile(pathToFile, $.html(), 'utf-8'));
+
+    return fs.mkdir(path.resolve(targetDirectory, `${baseName}_files`))
       .then(Promise.all(promises));
   });
 
