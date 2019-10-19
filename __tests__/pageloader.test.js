@@ -22,7 +22,7 @@ describe('page loader test', () => {
     testFolderPath = await fs.mkdtemp(path.join(tmpDirectory, 'test-'));
   });
 
-  test('Template Site', async () => {
+  test('Template Page', async () => {
     const addresses = ['/chilling_cafe',
       '/chilling/fontawesome/css/all.min.css',
       '/chilling/css/tooplate-chilling-cafe.css',
@@ -68,5 +68,15 @@ describe('page loader test', () => {
     expect(pageloaderData).toEqual(testAfter);
 
     expect(filelist).toEqual(filesTest);
+  });
+
+  test('Page not found 404', () => {
+    const address = '/notfound';
+
+    nock(host)
+      .get(address)
+      .reply(404);
+
+    return pageloader(`${host}${address}`, testFolderPath).catch((e) => expect(e).toMatch('404'));
   });
 });

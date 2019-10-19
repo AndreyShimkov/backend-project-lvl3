@@ -10,16 +10,14 @@ const normalizeName = (name) => {
 };
 
 const getElement = (request, filepath) => axios.get(request)
-  .then((response) => fs.writeFile(filepath, response.data, 'utf-8'))
-  .catch((e) => console.log(e));
+  .then((response) => fs.writeFile(filepath, response.data, 'utf-8'));
 
 const getPicture = (request, filepath) => axios({
   method: 'get',
   url: request,
   responseType: 'stream',
 })
-  .then((response) => response.data.pipe(writeStream(filepath)))
-  .catch((e) => console.log(e));
+  .then((response) => response.data.pipe(writeStream(filepath)));
 
 const tags = [
   {
@@ -63,10 +61,12 @@ const pageloader = (address, targetDirectory) => axios.get(address)
     });
 
     const pathToFile = path.resolve(targetDirectory, `${baseName}.html`);
+
     promises.push(fs.writeFile(pathToFile, $.html(), 'utf-8'));
 
     return fs.mkdir(path.resolve(targetDirectory, `${baseName}_files`))
       .then(Promise.all(promises));
-  });
+  })
+  .catch((e) => { throw (e.message); });
 
 export default pageloader;
