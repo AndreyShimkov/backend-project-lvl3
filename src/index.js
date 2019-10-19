@@ -3,6 +3,9 @@ import path from 'path';
 import axios from 'axios';
 import url from 'url';
 import cheerio from 'cheerio';
+import Debug from 'debug';
+
+const debug = Debug('page-loader');
 
 const normalizeName = (name) => {
   const st = new RegExp('[a-zA-Z0-9]');
@@ -10,14 +13,20 @@ const normalizeName = (name) => {
 };
 
 const getElement = (request, filepath) => axios.get(request)
-  .then((response) => fs.writeFile(filepath, response.data, 'utf-8'));
+  .then((response) => {
+    debug(`Get element from ${request}. Response status: ${response.status}`);
+    return fs.writeFile(filepath, response.data, 'utf-8');
+  });
 
 const getPicture = (request, filepath) => axios({
   method: 'get',
   url: request,
   responseType: 'stream',
 })
-  .then((response) => response.data.pipe(writeStream(filepath)));
+  .then((response) => {
+    debug(`Get image from ${request}. Response status: ${response.status}`);
+    return response.data.pipe(writeStream(filepath));
+  });
 
 const tags = [
   {
@@ -37,6 +46,7 @@ const tags = [
 
 const pageloader = (address, targetDirectory) => axios.get(address)
   .then((response) => {
+    debug(`Get web page from ${address}. Response status: ${response.status}`);
     const page = url.parse(address);
     const baseName = normalizeName(`${page.host}${page.path}`);
     const $ = cheerio.load(response.data);
