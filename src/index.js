@@ -1,67 +1,90 @@
 import { promises as fs, createWriteStream as writeStream } from 'fs';
-import path from 'path';
+import path, { basename } from 'path';
 import axios from 'axios';
-import url from 'url';
 import cheerio from 'cheerio';
 import Debug from 'debug';
 
 const debug = Debug('page-loader');
+
+const eHandler = (e) => {
+  console.error(e.message);
+  throw (e.message);
+};
 
 const normalizeName = (name) => {
   const st = new RegExp('[a-zA-Z0-9]');
   return name.split('').map((e) => (!st.test(e) ? '-' : e)).join('');
 };
 
-const getElement = (request, filepath) => axios.get(request)
-  .then((response) => {
-    debug(`Get element from ${request}. Response status: ${response.status}`);
-    return fs.writeFile(filepath, response.data, 'utf-8');
+const dataWrite = (filepath, data) => fs.writeFile(filepath, data, 'utf-8')
+  .catch((e) => {
+    debug(`ERROR: Can't write file ${filepath}. ${e.message}`);
+    eHandler(e);
   });
 
-const getPicture = (request, filepath) => axios({
-  method: 'get',
-  url: request,
-  responseType: 'stream',
-})
+const fileWrite = (filepath) => (response) => dataWrite(filepath, response.data);
+
+// unknow catch =(
+const fileWriteStream = (filepath) => (response) => response.data.pipe(writeStream(filepath));
+
+const getElement = (request, requestHandler) => axios(request)
   .then((response) => {
-    debug(`Get image from ${request}. Response status: ${response.status}`);
-    return response.data.pipe(writeStream(filepath));
+    debug(`SUCCESS: Get file from ${request.url}. Response status: ${response.status}`);
+    return requestHandler(response);
+  })
+  .catch((e) => {
+    debug(`ERROR: Can't get file from ${request.url}. ${e.message}`);
+    eHandler(e);
   });
 
 const tags = [
   {
     name: 'link',
     attribute: 'href',
-    downloader: getElement,
+    request: (address) => ({
+      method: 'get',
+      url: address,
+    }),
+    responseHandler: fileWrite,
   }, {
     name: 'img',
     attribute: 'src',
-    downloader: getPicture,
+    request: (address) => ({
+      method: 'get',
+      url: address,
+      responseType: 'stream',
+    }),
+    responseHandler: fileWriteStream,
   }, {
     name: 'script',
     attribute: 'src',
     downloader: getElement,
+    request: (address) => ({
+      method: 'get',
+      url: address,
+    }),
+    responseHandler: fileWrite,
   },
 ];
 
-const pageloader = (address, targetDirectory) => axios.get(address)
-  .then((response) => {
-    debug(`Get web page from ${address}. Response status: ${response.status}`);
-    const page = url.parse(address);
-    const baseName = normalizeName(`${page.host}${page.path}`);
-    const $ = cheerio.load(response.data);
+const pageloader = (address, targetDirectory) => getElement(address, (response) => response.data)
+  .then((data) => {
+    const page = new URL(address);
+    const baseName = normalizeName(`${page.host}${page.pathname}`);
+    const $ = cheerio.load(data);
     const promises = [];
 
     tags.forEach((tag) => {
       $(tag.name).each((i, element) => {
         const att = $(element).attr(tag.attribute);
-        if (att && url.parse(att).protocol === null) {
-          const linkPath = path.parse(att);
-          const newBaseName = normalizeName(`${linkPath.dir}/${linkPath.name}`).slice(1);
-          const newfilePath = `${baseName}_files/${newBaseName}${linkPath.ext}`;
+        const linkAddress = new URL(att, page.origin);
+        if (att && linkAddress.hostname === page.hostname) {
+          const link = path.parse(linkAddress.pathname);
+          const newFileName = normalizeName(`${link.dir.slice(1)}/${link.name}`);
+          const newfilePath = `${baseName}_files/${newFileName}${link.ext}`;
 
-          const promise = tag.downloader(`${page.protocol}//${page.host}${att}`,
-            path.resolve(targetDirectory, newfilePath));
+          const promise = getElement(tag.request(linkAddress.href),
+            tag.responseHandler(path.resolve(targetDirectory, newfilePath)));
 
           promises.push(promise);
 
@@ -72,11 +95,15 @@ const pageloader = (address, targetDirectory) => axios.get(address)
 
     const pathToFile = path.resolve(targetDirectory, `${baseName}.html`);
 
-    promises.push(fs.writeFile(pathToFile, $.html(), 'utf-8'));
+    promises.push(dataWrite(pathToFile, $.html()));
 
     return fs.mkdir(path.resolve(targetDirectory, `${baseName}_files`))
-      .then(Promise.all(promises));
-  })
-  .catch((e) => { throw (e.message); });
+      .then(Promise.all(promises))
+      .catch((e) => {
+        debug(`ERROR: Can't create folder ${basename}_files. ${e.message}`);
+        eHandler(e);
+      });
+  });
+
 
 export default pageloader;

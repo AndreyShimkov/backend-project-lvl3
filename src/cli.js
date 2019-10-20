@@ -9,7 +9,8 @@ commander
   .option('-o, --output [directory name]', 'output directory', '.')
   .arguments('<address>')
   .action((address) => {
-    pageloader(address, commander.output);
+    pageloader(address, commander.output)
+      .catch(console.error);
   });
 
 export default commander;
