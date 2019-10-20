@@ -70,13 +70,73 @@ describe('page loader test', () => {
     expect(filelist).toEqual(filesTest);
   });
 
-  test('Page not found 404', () => {
+  test('ERR: Page not found 404', async () => {
+    expect.assertions(1);
     const address = '/notfound';
 
     nock(host)
       .get(address)
       .reply(404);
 
-    return pageloader(`${host}${address}`, testFolderPath).catch((e) => expect(e).toMatch('404'));
+    try {
+      await pageloader(`${host}${address}`, testFolderPath);
+    } catch (e) {
+      expect(e.message).toMatch('404');
+    }
   });
+
+  test('ERR: No target directory', async () => {
+    expect.assertions(1);
+    const address = '/123';
+
+    nock(host)
+      .get(address)
+      .reply(200, '123');
+
+    try {
+      await pageloader(`${host}${address}`, '/BadDirectory');
+    } catch (e) {
+      expect(e.message).toMatch('ENOENT');
+    }
+  });
+
+  test('ERR: Directory already exists', async () => {
+    expect.assertions(1);
+    const address = '/simple_page';
+    const dirName = 'testhost-com-simple-page_files';
+
+    const data = await fs.readFile(path.join(pathToTest, address), 'utf-8');
+
+    nock(host)
+      .get(address)
+      .reply(200, data);
+
+    await fs.mkdir(path.join(testFolderPath, dirName));
+
+    try {
+      await pageloader(`${host}${address}`, testFolderPath);
+    } catch (e) {
+      expect(e.message).toMatch('EEXIST');
+    }
+  });
+  /*
+  test('ERR: File already exists', async () => {
+    expect.assertions(1);
+    const address = '/simple_page';
+    const fileName = 'testhost-com-simple-page.html';
+
+    const data = await fs.readFile(path.join(pathToTest, address), 'utf-8');
+
+    nock(host)
+      .get(address)
+      .reply(200, data);
+
+    await fs.mkdir(path.join(testFolderPath, fileName));
+
+    try {
+      await pageloader(`${host}${address}`, testFolderPath);
+    } catch (e) {
+      expect(e.message).toMatch('EISDIR');
+    }
+  }); */
 });
