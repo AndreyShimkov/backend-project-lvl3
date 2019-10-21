@@ -15,7 +15,25 @@ axios.defaults.adapter = httpAdapter;
 const tmpDirectory = os.tmpdir();
 const pathToTest = '__tests__/__fixtures__/';
 
-describe('page loader test', () => {
+const addresses = ['/chilling_cafe',
+  '/chilling/fontawesome/css/all.min.css',
+  '/chilling/css/tooplate-chilling-cafe.css',
+  '/chilling/js/jquery',
+  '/chilling/img/chilling-cafe-11.jpg',
+  '/chilling/img/chilling-cafe-12.jpg',
+  '/chilling/img/chilling-cafe-13.jpg',
+];
+
+const filesTest = [
+  'chilling-css-tooplate-chilling-cafe.css',
+  'chilling-fontawesome-css-all-min.css',
+  'chilling-img-chilling-cafe-11.jpg',
+  'chilling-img-chilling-cafe-12.jpg',
+  'chilling-img-chilling-cafe-13.jpg',
+  'chilling-js-jquery',
+];
+
+describe('Pageloader test', () => {
   let testFolderPath;
 
   beforeEach(async () => {
@@ -23,24 +41,6 @@ describe('page loader test', () => {
   });
 
   test('Template Page', async () => {
-    const addresses = ['/chilling_cafe',
-      '/chilling/fontawesome/css/all.min.css',
-      '/chilling/css/tooplate-chilling-cafe.css',
-      '/chilling/js/jquery',
-      '/chilling/img/chilling-cafe-11.jpg',
-      '/chilling/img/chilling-cafe-12.jpg',
-      '/chilling/img/chilling-cafe-13.jpg',
-    ];
-
-    const filesTest = [
-      'chilling-css-tooplate-chilling-cafe.css',
-      'chilling-fontawesome-css-all-min.css',
-      'chilling-img-chilling-cafe-11.jpg',
-      'chilling-img-chilling-cafe-12.jpg',
-      'chilling-img-chilling-cafe-13.jpg',
-      'chilling-js-jquery',
-    ];
-
     const promises = addresses.map((v, i) => {
       const fileName = path.join(pathToTest, v);
       const testFileData = i > 3 ? fs.readFile(fileName) : fs.readFile(fileName, 'utf-8');
@@ -87,7 +87,7 @@ describe('page loader test', () => {
 
   test('ERR: No target directory', async () => {
     expect.assertions(1);
-    const address = '/123';
+    const address = '/BadDirectory';
 
     nock(host)
       .get(address)
@@ -135,6 +135,40 @@ describe('page loader test', () => {
       await pageloader(`${host}${address}`, testFolderPath);
     } catch (e) {
       expect(e.message).toMatch('EISDIR');
+    }
+  });
+
+  test('http status tests 100-199', async () => {
+    const address = '/123';
+    const testDir = testFolderPath;
+    for (let i = 100; i < 199; i += 1) {
+      nock(host)
+        .get(address)
+        .reply(i, '123');
+
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        await pageloader(`${host}${address}`, testDir);
+      } catch (e) {
+        expect(e.message).toMatch(`${i}`);
+      }
+    }
+  });
+
+  test('http status tests 300-599', async () => {
+    const address = '/123';
+    const testDir = testFolderPath;
+    for (let i = 300; i < 599; i += 1) {
+      nock(host)
+        .get(address)
+        .reply(i, '123');
+
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        await pageloader(`${host}${address}`, testDir);
+      } catch (e) {
+        expect(e.message).toMatch(`${i}`);
+      }
     }
   });
 });

@@ -10,7 +10,10 @@ commander
   .arguments('<address>')
   .action((address) => {
     pageloader(address, commander.output)
-      .catch((e) => console.error(e.message));
+      .catch((e) => {
+        console.error(e.message);
+        process.exit(1);
+      });
   });
 
 export default commander;
