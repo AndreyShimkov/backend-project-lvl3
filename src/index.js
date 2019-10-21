@@ -80,7 +80,9 @@ const dataHandler = (address, targetDirectory, data) => {
         const promise = getElement(tag.request(linkAddress.href),
           tag.responseHandler(path.resolve(targetDirectory, newfilePath)));
 
-        promises.push(promise);
+        promises.push(promise
+          .then(() => ({ result: 'success' }))
+          .catch((e) => ({ result: 'error', error: e })));
 
         $(element).attr(tag.attribute, newfilePath);
       }
@@ -89,11 +91,14 @@ const dataHandler = (address, targetDirectory, data) => {
 
   const pathToFile = path.resolve(targetDirectory, `${baseName}.html`);
 
-  promises.push(dataWrite(pathToFile, $.html()));
+  const writePage = dataWrite(pathToFile, $.html())
+    .then(() => ({ result: 'success' }))
+    .catch((e) => ({ result: 'error', error: e }));
+
+  promises.push(writePage);
 
   return fs.mkdir(path.resolve(targetDirectory, `${baseName}_files`))
-    .then(Promise.all(promises)
-      .catch((e) => { throw (e); }))
+    .then(() => Promise.all(promises))
     .catch((e) => {
       debug(`ERROR: Can't create folder '_files'. ${e.message}`);
       throw (e);
@@ -102,7 +107,15 @@ const dataHandler = (address, targetDirectory, data) => {
 
 const pageloader = (address, targetDirectory) => fs.readdir(targetDirectory)
   .then(() => getElement({ method: 'get', url: address }, (response) => response.data))
-  .catch((e) => { throw (e); })
-  .then((data) => dataHandler(address, targetDirectory, data));
+  .then((data) => dataHandler(address, targetDirectory, data))
+  .then((results) => results.forEach((v) => {
+    if (v.error) {
+      throw (v.error);
+    }
+  }))
+  .catch((e) => {
+    debug(`ERROR: Тarget directory does not exist. ${e.message}`);
+    throw (e);
+  });
 
 export default pageloader;

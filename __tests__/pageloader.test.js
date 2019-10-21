@@ -119,24 +119,22 @@ describe('page loader test', () => {
       expect(e.message).toMatch('EEXIST');
     }
   });
-  /*
+
   test('ERR: File already exists', async () => {
     expect.assertions(1);
     const address = '/simple_page';
     const fileName = 'testhost-com-simple-page.html';
 
     const data = await fs.readFile(path.join(pathToTest, address), 'utf-8');
+    await fs.mkdir(path.join(testFolderPath, fileName));
 
     nock(host)
       .get(address)
       .reply(200, data);
-
-    await fs.mkdir(path.join(testFolderPath, fileName));
-
     try {
       await pageloader(`${host}${address}`, testFolderPath);
     } catch (e) {
       expect(e.message).toMatch('EISDIR');
     }
-  }); */
+  });
 });
