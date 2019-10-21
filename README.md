@@ -12,8 +12,14 @@ Web page loader
 
 > page-loader -h
 
-## Using 
+[![asciicast](https://asciinema.org/a/xZhlPf3VcYwg1t5eiqyI5vi9z.svg)](https://asciinema.org/a/xZhlPf3VcYwg1t5eiqyI5vi9z)
+
+## Usage
 
 > page-loader -o /home https://ru.hexlet.io/courses
 
 [![asciicast](https://asciinema.org/a/eABTm4YRAhvqP4n7O53Z572YF.svg)](https://asciinema.org/a/eABTm4YRAhvqP4n7O53Z572YF)
+
+## Examples of error messages
+
+[![asciicast](https://asciinema.org/a/4bSYV9m3gAolczxrY112W7vr9.svg)](https://asciinema.org/a/4bSYV9m3gAolczxrY112W7vr9)
