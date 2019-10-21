@@ -62,34 +62,36 @@ const tags = [
   },
 ];
 
-const dataHandler = (address, targetDirectory, data) => {
-  const page = new URL(address);
-  const baseName = normalizeName(`${page.host}${page.pathname}`);
+const linkConstructor = (pageName, oldLinkAddress) => {
+  const link = path.parse(oldLinkAddress.pathname);
+  const newFileName = normalizeName(`${link.dir.slice(1)}/${link.name}`);
+  return `${pageName}_files/${newFileName}${link.ext}`;
+};
+
+const dataHandler = (page, baseName, targetDir, data) => {
   const $ = cheerio.load(data);
   const promises = [];
 
   tags.forEach((tag) => {
-    $(tag.name).each((i, element) => {
-      const att = $(element).attr(tag.attribute);
+    $(tag.name).each((i, el) => {
+      const att = $(el).attr(tag.attribute);
       const linkAddress = new URL(att, page.origin);
       if (att && linkAddress.hostname === page.hostname) {
-        const link = path.parse(linkAddress.pathname);
-        const newFileName = normalizeName(`${link.dir.slice(1)}/${link.name}`);
-        const newfilePath = `${baseName}_files/${newFileName}${link.ext}`;
+        const newfilePath = linkConstructor(baseName, linkAddress);
 
         const promise = getElement(tag.request(linkAddress.href),
-          tag.responseHandler(path.resolve(targetDirectory, newfilePath)));
+          tag.responseHandler(path.resolve(targetDir, newfilePath)));
 
         promises.push(promise
           .then(() => ({ result: 'success' }))
           .catch((e) => ({ result: 'error', error: e })));
 
-        $(element).attr(tag.attribute, newfilePath);
+        $(el).attr(tag.attribute, newfilePath);
       }
     });
   });
 
-  const pathToFile = path.resolve(targetDirectory, `${baseName}.html`);
+  const pathToFile = path.resolve(targetDir, `${baseName}.html`);
 
   const writePage = dataWrite(pathToFile, $.html())
     .then(() => ({ result: 'success' }))
@@ -97,17 +99,22 @@ const dataHandler = (address, targetDirectory, data) => {
 
   promises.push(writePage);
 
-  return fs.mkdir(path.resolve(targetDirectory, `${baseName}_files`))
-    .then(() => Promise.all(promises))
-    .catch((e) => {
-      debug(`ERROR: Can't create folder '_files'. ${e.message}`);
-      throw (e);
-    });
+  return Promise.all(promises);
 };
 
 const pageloader = (address, targetDirectory) => fs.readdir(targetDirectory)
   .then(() => getElement({ method: 'get', url: address }, (response) => response.data))
-  .then((data) => dataHandler(address, targetDirectory, data))
+  .then((data) => {
+    const pageAddress = new URL(address);
+    const baseName = normalizeName(`${pageAddress.host}${pageAddress.pathname}`);
+
+    return fs.mkdir(path.resolve(targetDirectory, `${baseName}_files`))
+      .then(() => dataHandler(pageAddress, baseName, targetDirectory, data))
+      .catch((e) => {
+        debug(`ERROR: Can't create folder '_files'. ${e.message}`);
+        throw (e);
+      });
+  })
   .then((results) => results.forEach((v) => {
     if (v.error) {
       throw (v.error);
