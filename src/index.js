@@ -80,15 +80,17 @@ const dataHandler = (page, baseName, targetDir, data) => {
       if (att && linkAddress.hostname === page.hostname) {
         const newfilePath = linkConstructor(baseName, linkAddress);
 
-        const promise = new Listr([{
-          title: `Downloading ${tag.name} file from ${linkAddress.href}...`,
-          task: () => getElement(tag.request(linkAddress.href),
-            tag.responseHandler(path.resolve(targetDir, newfilePath))),
+        const promise = getElement(tag.request(linkAddress.href),
+          tag.responseHandler(path.resolve(targetDir, newfilePath)));
+
+        const task = new Listr([{
+          title: `Downloading ${tag.name} file from ${linkAddress.href}`,
+          task: () => promise
+            .then(() => ({ result: 'success' }))
+            .catch((e) => ({ result: 'error', error: e })),
         }]);
 
-        promises.push(promise
-          .then(() => ({ result: 'success' }))
-          .catch((e) => ({ result: 'error', error: e })));
+        promises.push(new Promise((resolve) => resolve(task.run())));
 
         $(el).attr(tag.attribute, newfilePath);
       }
