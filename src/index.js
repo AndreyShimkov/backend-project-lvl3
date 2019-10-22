@@ -3,6 +3,7 @@ import path from 'path';
 import axios from 'axios';
 import cheerio from 'cheerio';
 import Debug from 'debug';
+import Listr from 'listr';
 
 const debug = Debug('page-loader');
 
@@ -79,8 +80,11 @@ const dataHandler = (page, baseName, targetDir, data) => {
       if (att && linkAddress.hostname === page.hostname) {
         const newfilePath = linkConstructor(baseName, linkAddress);
 
-        const promise = getElement(tag.request(linkAddress.href),
-          tag.responseHandler(path.resolve(targetDir, newfilePath)));
+        const promise = new Listr([{
+          title: `Downloading ${tag.name} file from ${linkAddress.href}...`,
+          task: () => getElement(tag.request(linkAddress.href),
+            tag.responseHandler(path.resolve(targetDir, newfilePath))),
+        }]);
 
         promises.push(promise
           .then(() => ({ result: 'success' }))
