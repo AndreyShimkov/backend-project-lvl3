@@ -1,4 +1,4 @@
-import { promises as fs, createWriteStream as writeStream } from 'fs';
+import { promises as fs } from 'fs';
 import path from 'path';
 import axios from 'axios';
 import cheerio from 'cheerio';
@@ -20,8 +20,11 @@ const dataWrite = (filepath, data) => fs.writeFile(filepath, data, 'utf-8')
 
 const fileWrite = (filepath) => (response) => dataWrite(filepath, response.data);
 
-// unknow catch =(
-const fileWriteStream = (filepath) => (response) => response.data.pipe(writeStream(filepath));
+const writeImage = (filepath) => (response) => fs.writeFile(filepath, response.data)
+  .catch((e) => {
+    debug(`ERROR: Can't write img file ${filepath}. ${e.message}`);
+    throw (e);
+  });
 
 const getElement = (request, requestHandler) => axios(request)
   .then((response) => {
@@ -48,9 +51,9 @@ const tags = [
     request: (address) => ({
       method: 'get',
       url: address,
-      responseType: 'stream',
+      responseType: 'arraybuffer',
     }),
-    responseHandler: fileWriteStream,
+    responseHandler: writeImage,
   }, {
     name: 'script',
     attribute: 'src',
@@ -80,32 +83,25 @@ const dataHandler = (page, baseName, targetDir, data) => {
       if (att && linkAddress.hostname === page.hostname) {
         const newfilePath = linkConstructor(baseName, linkAddress);
 
-        const promise = getElement(tag.request(linkAddress.href),
-          tag.responseHandler(path.resolve(targetDir, newfilePath)));
-
-        const task = new Listr([{
+        const promise = ({
           title: `Downloading ${tag.name} file from ${linkAddress.href}`,
-          task: () => promise
-            .then(() => ({ result: 'success' }))
-            .catch((e) => ({ result: 'error', error: e })),
-        }]);
+          task: () => getElement(tag.request(linkAddress.href),
+            tag.responseHandler(path.resolve(targetDir, newfilePath)))
+            .catch((e) => { throw (e); }),
+        });
 
-        promises.push(new Promise((resolve) => resolve(task.run())));
+        promises.push(promise);
 
         $(el).attr(tag.attribute, newfilePath);
       }
     });
   });
 
-  const pathToFile = path.resolve(targetDir, `${baseName}.html`);
+  const tasks = new Listr(promises, { concurrent: true });
 
-  const writePage = dataWrite(pathToFile, $.html())
-    .then(() => ({ result: 'success' }))
-    .catch((e) => ({ result: 'error', error: e }));
-
-  promises.push(writePage);
-
-  return Promise.all(promises);
+  return dataWrite(path.resolve(targetDir, `${baseName}.html`), $.html())
+    .then(() => tasks.run())
+    .catch((e) => { throw (e); });
 };
 
 const pageloader = (address, targetDirectory) => fs.readdir(targetDirectory)
@@ -121,11 +117,6 @@ const pageloader = (address, targetDirectory) => fs.readdir(targetDirectory)
         throw (e);
       });
   })
-  .then((results) => results.forEach((v) => {
-    if (v.error) {
-      throw (v.error);
-    }
-  }))
   .catch((e) => {
     debug(`ERROR: Тarget directory does not exist. ${e.message}`);
     throw (e);

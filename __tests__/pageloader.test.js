@@ -70,12 +70,18 @@ describe('Pageloader test', () => {
     expect(filelist).toEqual(filesTest);
   });
 
-  test('ERR: Page not found 404', async () => {
+  test('ERR: Bad page link', async () => {
     expect.assertions(1);
-    const address = '/notfound';
+    const address = '/simple_page_b';
+    const fileName = path.join(pathToTest, address);
+    const data = await fs.readFile(fileName, 'utf-8');
 
     nock(host)
       .get(address)
+      .reply(200, data);
+
+    nock(host)
+      .get('/404/bad_file.css')
       .reply(404);
 
     try {
