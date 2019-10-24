@@ -12,19 +12,15 @@ const normalizeName = (name) => {
   return name.split('').map((e) => (!st.test(e) ? '-' : e)).join('');
 };
 
-const dataWrite = (filepath, data) => fs.writeFile(filepath, data, 'utf-8')
+const dataWrite = (filepath, ...args) => fs.writeFile(filepath, ...args)
   .catch((e) => {
     debug(`ERROR: Can't write file ${filepath}. ${e.message}`);
     throw (e);
   });
 
-const fileWrite = (filepath) => (response) => dataWrite(filepath, response.data);
+const fileWrite = (filepath) => (response) => dataWrite(filepath, response.data, 'utf-8');
 
-const writeImage = (filepath) => (response) => fs.writeFile(filepath, response.data)
-  .catch((e) => {
-    debug(`ERROR: Can't write img file ${filepath}. ${e.message}`);
-    throw (e);
-  });
+const fileWriteImg = (filepath) => (response) => fs.writeFile(filepath, response.data);
 
 const getElement = (request, requestHandler) => axios(request)
   .then((response) => {
@@ -53,7 +49,7 @@ const tags = [
       url: address,
       responseType: 'arraybuffer',
     }),
-    responseHandler: writeImage,
+    responseHandler: fileWriteImg,
   }, {
     name: 'script',
     attribute: 'src',
@@ -99,9 +95,12 @@ const dataHandler = (page, baseName, targetDir, data) => {
 
   const tasks = new Listr(promises, { concurrent: true });
 
-  return dataWrite(path.resolve(targetDir, `${baseName}.html`), $.html())
+  return dataWrite(path.resolve(targetDir, `${baseName}.html`), $.html(), 'utf-8')
     .then(() => tasks.run())
-    .catch((e) => { throw (e); });
+    .catch((e) => {
+      debug(`ERROR: Can't create file '${baseName}.html'. ${e.message}`);
+      throw (e);
+    });
 };
 
 const pageloader = (address, targetDirectory) => fs.readdir(targetDirectory)
@@ -113,7 +112,7 @@ const pageloader = (address, targetDirectory) => fs.readdir(targetDirectory)
     return fs.mkdir(path.resolve(targetDirectory, `${baseName}_files`))
       .then(() => dataHandler(pageAddress, baseName, targetDirectory, data))
       .catch((e) => {
-        debug(`ERROR: Can't create folder '_files'. ${e.message}`);
+        debug(`ERROR: Can't create folder '*_files'. ${e.message}`);
         throw (e);
       });
   })

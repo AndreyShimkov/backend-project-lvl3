@@ -33,6 +33,20 @@ const filesTest = [
   'chilling-js-jquery',
 ];
 
+const linkTests = [
+  ['ERR: Bad script link', '/simple_page_script', '/404/bad_file.js'],
+  ['ERR: Bad img file link', '/simple_page_img', '/404/bad_file.jpg'],
+  ['ERR: Bad css file link', '/simple_page_css', '/404/bad_file.css'],
+];
+
+const tryTest = async (page, dir, template) => {
+  try {
+    await pageloader(page, dir);
+  } catch (e) {
+    expect(e.message).toMatch(template);
+  }
+};
+
 describe('Pageloader test', () => {
   let testFolderPath;
 
@@ -41,6 +55,8 @@ describe('Pageloader test', () => {
   });
 
   test('Template Page', async () => {
+    const fileNameAfter = 'testhost-com-chilling-cafe.html';
+    const directoryName = 'testhost-com-chilling-cafe_files';
     const promises = addresses.map((v, i) => {
       const fileName = path.join(pathToTest, v);
       const testFileData = i > 3 ? fs.readFile(fileName) : fs.readFile(fileName, 'utf-8');
@@ -58,38 +74,43 @@ describe('Pageloader test', () => {
 
     await pageloader(`${host}${addresses[0]}`, testFolderPath);
 
-    const fileNameAfter = 'testhost-com-chilling-cafe.html';
-    const directoryName = 'testhost-com-chilling-cafe_files';
-
     const testAfter = await fs.readFile(path.join(pathToTest, fileNameAfter), 'utf-8');
     const pageloaderData = await fs.readFile(path.join(testFolderPath, fileNameAfter), 'utf-8');
     const filelist = await fs.readdir(path.join(testFolderPath, directoryName));
 
     expect(pageloaderData).toEqual(testAfter);
-
     expect(filelist).toEqual(filesTest);
   });
 
-  test('ERR: Bad page link', async () => {
+  test('ERR: Page not found 404', async () => {
     expect.assertions(1);
-    const address = '/simple_page_b';
-    const fileName = path.join(pathToTest, address);
-    const data = await fs.readFile(fileName, 'utf-8');
+    const address = '/notfound';
 
     nock(host)
       .get(address)
-      .reply(200, data);
-
-    nock(host)
-      .get('/404/bad_file.css')
       .reply(404);
 
-    try {
-      await pageloader(`${host}${address}`, testFolderPath);
-    } catch (e) {
-      expect(e.message).toMatch('404');
-    }
+    await tryTest(`${host}${address}`, testFolderPath, 'Request failed with status code 404');
   });
+
+  describe.each(linkTests)('Bad links test',
+    (name, address, link) => {
+      test(name, async () => {
+        expect.assertions(1);
+        const fileName = path.join(pathToTest, address);
+        const data = await fs.readFile(fileName, 'utf-8');
+
+        nock(host)
+          .get(address)
+          .reply(200, data);
+
+        nock(host)
+          .get(link)
+          .reply(404);
+
+        await tryTest(`${host}${address}`, testFolderPath, 'Request failed with status code 404');
+      });
+    });
 
   test('ERR: No target directory', async () => {
     expect.assertions(1);
@@ -99,14 +120,10 @@ describe('Pageloader test', () => {
       .get(address)
       .reply(200, '123');
 
-    try {
-      await pageloader(`${host}${address}`, '/BadDirectory');
-    } catch (e) {
-      expect(e.message).toMatch('ENOENT');
-    }
+    await tryTest(`${host}${address}`, '/BadDirectory', 'ENOENT');
   });
 
-  test('ERR: Directory already exists', async () => {
+  test('ERR: Directory *_files already exists', async () => {
     expect.assertions(1);
     const address = '/simple_page';
     const dirName = 'testhost-com-simple-page_files';
@@ -119,14 +136,10 @@ describe('Pageloader test', () => {
 
     await fs.mkdir(path.join(testFolderPath, dirName));
 
-    try {
-      await pageloader(`${host}${address}`, testFolderPath);
-    } catch (e) {
-      expect(e.message).toMatch('EEXIST');
-    }
+    await tryTest(`${host}${address}`, testFolderPath, 'EEXIST');
   });
 
-  test('ERR: File already exists', async () => {
+  test('ERR: File *.html already exists', async () => {
     expect.assertions(1);
     const address = '/simple_page';
     const fileName = 'testhost-com-simple-page.html';
@@ -137,44 +150,7 @@ describe('Pageloader test', () => {
     nock(host)
       .get(address)
       .reply(200, data);
-    try {
-      await pageloader(`${host}${address}`, testFolderPath);
-    } catch (e) {
-      expect(e.message).toMatch('EISDIR');
-    }
-  });
 
-  test('http status tests 100-199', async () => {
-    const address = '/123';
-    const testDir = testFolderPath;
-    for (let i = 100; i < 199; i += 1) {
-      nock(host)
-        .get(address)
-        .reply(i, '123');
-
-      try {
-        // eslint-disable-next-line no-await-in-loop
-        await pageloader(`${host}${address}`, testDir);
-      } catch (e) {
-        expect(e.message).toMatch(`${i}`);
-      }
-    }
-  });
-
-  test('http status tests 300-599', async () => {
-    const address = '/123';
-    const testDir = testFolderPath;
-    for (let i = 300; i < 599; i += 1) {
-      nock(host)
-        .get(address)
-        .reply(i, '123');
-
-      try {
-        // eslint-disable-next-line no-await-in-loop
-        await pageloader(`${host}${address}`, testDir);
-      } catch (e) {
-        expect(e.message).toMatch(`${i}`);
-      }
-    }
+    await tryTest(`${host}${address}`, testFolderPath, 'EISDIR');
   });
 });

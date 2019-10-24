@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <link href="/404/bad_file.css" rel="stylesheet">
+  </head>
+  <body>
+    <p>Text</>
+  </body>
+</html>

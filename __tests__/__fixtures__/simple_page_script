@@ -2,9 +2,9 @@
 <html lang="en">
   <head>
       <meta charset="UTF-8">
-      <link href="/404/bad_file.css" rel="stylesheet" />
   </head>
   <body>
     <p>Text</>
+    <script type='text/javascript' src='/404/bad_file.js'></script>
   </body>
 </html>
