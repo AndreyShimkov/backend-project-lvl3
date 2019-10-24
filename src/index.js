@@ -92,7 +92,6 @@ const dataHandler = (page, baseName, targetDir, data) => {
       }
     });
   });
-
   const tasks = new Listr(promises, { concurrent: true });
 
   return dataWrite(path.resolve(targetDir, `${baseName}.html`), $.html(), 'utf-8')

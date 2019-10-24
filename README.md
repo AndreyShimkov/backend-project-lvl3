@@ -16,10 +16,19 @@ Web page loader
 
 ## Usage
 
-> page-loader -o /home https://ru.hexlet.io/courses
+> page-loader -o /home/you_directory/ https://ru.hexlet.io/courses
 
 [![asciicast](https://asciinema.org/a/eABTm4YRAhvqP4n7O53Z572YF.svg)](https://asciinema.org/a/eABTm4YRAhvqP4n7O53Z572YF)
+
+> page-loader -o /home/you_directory/ https://zen.yandex.ru
+
+[![asciicast](https://asciinema.org/a/tX9bKIDpRX3Jwm6cQtZOLnggw.svg)](https://asciinema.org/a/tX9bKIDpRX3Jwm6cQtZOLnggw)
 
 ## Examples of error messages
 
 [![asciicast](https://asciinema.org/a/4bSYV9m3gAolczxrY112W7vr9.svg)](https://asciinema.org/a/4bSYV9m3gAolczxrY112W7vr9)
+
+
+## Support logging for debugging
+
+[![asciicast](https://asciinema.org/a/Mf57WUzqFJLCAsPCQOCs8LhPw.svg)](https://asciinema.org/a/Mf57WUzqFJLCAsPCQOCs8LhPw)
