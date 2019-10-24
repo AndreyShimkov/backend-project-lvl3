@@ -79,14 +79,12 @@ const dataHandler = (page, baseName, targetDir, data) => {
       if (att && linkAddress.hostname === page.hostname) {
         const newfilePath = linkConstructor(baseName, linkAddress);
 
-        const promise = ({
+        promises.push({
           title: `Downloading ${tag.name} file from ${linkAddress.href}`,
           task: () => getElement(tag.request(linkAddress.href),
             tag.responseHandler(path.resolve(targetDir, newfilePath)))
             .catch((e) => { throw (e); }),
         });
-
-        promises.push(promise);
 
         $(el).attr(tag.attribute, newfilePath);
       }
