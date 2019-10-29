@@ -5,7 +5,7 @@ build:
 start:
 	npm run babel-node -- src/bin/pageloader.js
 lint:
-	npm run eslint ./
+	npx eslint .
 test:
 	npm test
 coverage:

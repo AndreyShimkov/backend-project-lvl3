@@ -1,5 +1,5 @@
 extends: 
-  - airbnb-base
+  - 'airbnb-base'
   - 'plugin:jest/recommended'
 
 plugins: 
@@ -10,7 +10,6 @@ parser: babel-eslint
 
 env:
   node: true
-  browser: true
   jest: true
 
 rules:
