@@ -2,4 +2,3 @@ node_modules
 dist
 __tests__/__fixtures__/**
 coverage
-__snapshots__

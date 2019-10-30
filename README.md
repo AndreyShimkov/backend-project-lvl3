@@ -8,6 +8,8 @@ Web page loader
 
 > npm link
 
+[![asciicast](https://asciinema.org/a/qoNwwzsw8MHEMMorkK5ReyRBz.svg)](https://asciinema.org/a/qoNwwzsw8MHEMMorkK5ReyRBz)
+
 ## Get help
 
 > page-loader -h

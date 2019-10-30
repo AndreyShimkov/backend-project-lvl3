@@ -12,23 +12,25 @@ const normalizeName = (name) => {
   return name.split('').map((e) => (!st.test(e) ? '-' : e)).join('');
 };
 
-const dataWrite = (filepath, ...args) => fs.writeFile(filepath, ...args)
+const dataWrite = (filepath, data) => fs.writeFile(filepath, data)
   .catch((e) => {
     debug(`ERROR: Can't write file ${filepath}. ${e.message}`);
     throw (e);
   });
 
-const fileWrite = (filepath) => (response) => dataWrite(filepath, response.data, 'utf-8');
+const rHandler = (PathToFile) => (fileData) => dataWrite(PathToFile, fileData);
 
-const fileWriteImg = (filepath) => (response) => fs.writeFile(filepath, response.data);
-
-const getElement = (request, requestHandler) => axios(request)
+const getElement = (addr, responseHandler) => axios({
+  method: 'get',
+  url: addr,
+  responseType: 'arraybuffer',
+})
   .then((response) => {
-    debug(`SUCCESS: Get file from ${request.url}. Response status: ${response.status}`);
-    return requestHandler(response);
+    debug(`SUCCESS: Get file from ${addr}. Response status: ${response.status}`);
+    return responseHandler(response.data);
   })
   .catch((e) => {
-    debug(`ERROR: Can't get file from ${request.url}. ${e.message}`);
+    debug(`ERROR: Can't get file from ${addr}. ${e.message}`);
     throw (e);
   });
 
@@ -36,29 +38,12 @@ const tags = [
   {
     name: 'link',
     attribute: 'href',
-    request: (address) => ({
-      method: 'get',
-      url: address,
-    }),
-    responseHandler: fileWrite,
   }, {
     name: 'img',
     attribute: 'src',
-    request: (address) => ({
-      method: 'get',
-      url: address,
-      responseType: 'arraybuffer',
-    }),
-    responseHandler: fileWriteImg,
   }, {
     name: 'script',
     attribute: 'src',
-    downloader: getElement,
-    request: (address) => ({
-      method: 'get',
-      url: address,
-    }),
-    responseHandler: fileWrite,
   },
 ];
 
@@ -81,8 +66,8 @@ const dataHandler = (page, baseName, targetDir, data) => {
 
         promises.push({
           title: `Downloading ${tag.name} file from ${linkAddress.href}`,
-          task: () => getElement(tag.request(linkAddress.href),
-            tag.responseHandler(path.resolve(targetDir, newfilePath)))
+          task: () => getElement(linkAddress.href,
+            rHandler(path.resolve(targetDir, newfilePath)))
             .catch((e) => { throw (e); }),
         });
 
@@ -101,7 +86,7 @@ const dataHandler = (page, baseName, targetDir, data) => {
 };
 
 const pageloader = (address, targetDirectory) => fs.readdir(targetDirectory)
-  .then(() => getElement({ method: 'get', url: address }, (response) => response.data))
+  .then(() => getElement(address, (html) => html))
   .then((data) => {
     const pageAddress = new URL(address);
     const baseName = normalizeName(`${pageAddress.host}${pageAddress.pathname}`);
