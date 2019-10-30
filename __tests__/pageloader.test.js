@@ -2,13 +2,13 @@ import '@babel/polyfill';
 import os from 'os';
 import path from 'path';
 import { promises as fs } from 'fs';
-import axios from 'axios';
+// import axios from 'axios';
 import nock from 'nock';
 import pageloader from '../src';
 
 const host = 'http://testhost.com';
 
-axios.defaults.host = host;
+// axios.defaults.host = host;
 
 const tmpDirectory = os.tmpdir();
 const pathToTest = '__tests__/__fixtures__/';
@@ -47,9 +47,9 @@ describe('Pageloader test', () => {
   test('Template Page', async () => {
     const fileNameAfter = 'testhost-com-chilling-cafe.html';
     const directoryName = 'testhost-com-chilling-cafe_files';
-    const promises = addresses.map((v, i) => {
+    const promises = addresses.map((v) => {
       const fileName = path.join(pathToTest, v);
-      const testFileData = i > 3 ? fs.readFile(fileName) : fs.readFile(fileName, 'utf-8');
+      const testFileData = fs.readFile(fileName);
       return testFileData;
     });
 
