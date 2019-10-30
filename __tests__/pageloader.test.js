@@ -37,14 +37,6 @@ const linkTests = [
   ['ERR: Bad css file link', '/simple_page_css', '/404/bad_file.css'],
 ];
 
-const tryTest = async (page, dir, template) => {
-  try {
-    await pageloader(page, dir);
-  } catch (e) {
-    expect(e.message).toMatch(template);
-  }
-};
-
 describe('Pageloader test', () => {
   let testFolderPath;
 
@@ -81,20 +73,19 @@ describe('Pageloader test', () => {
   });
 
   test('ERR: Page not found 404', async () => {
-    expect.assertions(1);
     const address = '/notfound';
 
     nock(host)
       .get(address)
       .reply(404);
 
-    await tryTest(`${host}${address}`, testFolderPath, 'Request failed with status code 404');
+    await expect(pageloader(`${host}${address}`, testFolderPath)).rejects
+      .toThrowErrorMatchingSnapshot('Request failed with status code 404');
   });
 
   describe.each(linkTests)('Bad links test',
     (name, address, link) => {
       test(name, async () => {
-        expect.assertions(1);
         const fileName = path.join(pathToTest, address);
         const data = await fs.readFile(fileName, 'utf-8');
 
@@ -106,23 +97,23 @@ describe('Pageloader test', () => {
           .get(link)
           .reply(404);
 
-        await tryTest(`${host}${address}`, testFolderPath, 'Request failed with status code 404');
+        await expect(pageloader(`${host}${address}`, testFolderPath)).rejects
+          .toThrowErrorMatchingSnapshot('Request failed with status code 404');
       });
     });
 
   test('ERR: No target directory', async () => {
-    expect.assertions(1);
     const address = '/BadDirectory';
 
     nock(host)
       .get(address)
       .reply(200, '123');
 
-    await tryTest(`${host}${address}`, '/BadDirectory', 'ENOENT');
+    await expect(pageloader(`${host}${address}`, '/BadDirectory')).rejects
+      .toThrowErrorMatchingSnapshot('ENOENT');
   });
 
   test('ERR: Directory *_files already exists', async () => {
-    expect.assertions(1);
     const address = '/simple_page';
     const dirName = 'testhost-com-simple-page_files';
 
@@ -134,11 +125,11 @@ describe('Pageloader test', () => {
 
     await fs.mkdir(path.join(testFolderPath, dirName));
 
-    await tryTest(`${host}${address}`, testFolderPath, 'EEXIST');
+    await expect(pageloader(`${host}${address}`, testFolderPath)).rejects
+      .toThrowErrorMatchingSnapshot('EEXIST');
   });
 
   test('ERR: File *.html already exists', async () => {
-    expect.assertions(1);
     const address = '/simple_page';
     const fileName = 'testhost-com-simple-page.html';
 
@@ -149,6 +140,7 @@ describe('Pageloader test', () => {
       .get(address)
       .reply(200, data);
 
-    await tryTest(`${host}${address}`, testFolderPath, 'EISDIR');
+    await expect(pageloader(`${host}${address}`, testFolderPath)).rejects
+      .toThrowErrorMatchingSnapshot('EISDIR');
   });
 });
