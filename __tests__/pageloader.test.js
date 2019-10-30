@@ -80,7 +80,7 @@ describe('Pageloader test', () => {
       .reply(404);
 
     await expect(pageloader(`${host}${address}`, testFolderPath)).rejects
-      .toThrowErrorMatchingSnapshot('Request failed with status code 404');
+      .toThrow('Request failed with status code 404');
   });
 
   describe.each(linkTests)('Bad links test',
@@ -98,7 +98,7 @@ describe('Pageloader test', () => {
           .reply(404);
 
         await expect(pageloader(`${host}${address}`, testFolderPath)).rejects
-          .toThrowErrorMatchingSnapshot('Request failed with status code 404');
+          .toThrow('Request failed with status code 404');
       });
     });
 
@@ -110,7 +110,7 @@ describe('Pageloader test', () => {
       .reply(200, '123');
 
     await expect(pageloader(`${host}${address}`, '/BadDirectory')).rejects
-      .toThrowErrorMatchingSnapshot('ENOENT');
+      .toThrow('ENOENT');
   });
 
   test('ERR: Directory *_files already exists', async () => {
@@ -126,7 +126,7 @@ describe('Pageloader test', () => {
     await fs.mkdir(path.join(testFolderPath, dirName));
 
     await expect(pageloader(`${host}${address}`, testFolderPath)).rejects
-      .toThrowErrorMatchingSnapshot('EEXIST');
+      .toThrow('EEXIST');
   });
 
   test('ERR: File *.html already exists', async () => {
@@ -141,6 +141,6 @@ describe('Pageloader test', () => {
       .reply(200, data);
 
     await expect(pageloader(`${host}${address}`, testFolderPath)).rejects
-      .toThrowErrorMatchingSnapshot('EISDIR');
+      .toThrow('EISDIR');
   });
 });
