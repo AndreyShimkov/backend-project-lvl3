@@ -12,13 +12,13 @@ const normalizeName = (name) => {
   return name.split('').map((e) => (!st.test(e) ? '-' : e)).join('');
 };
 
-const dataWrite = (filepath, data) => fs.writeFile(filepath, data)
+const writeData = (filepath, data) => fs.writeFile(filepath, data)
   .catch((e) => {
     debug(`ERROR: Can't write file ${filepath}. ${e.message}`);
     throw (e);
   });
 
-const rHandler = (PathToFile) => (fileData) => dataWrite(PathToFile, fileData);
+const rHandler = (pathToFile) => (fileData) => writeData(pathToFile, fileData);
 
 const getElement = (addr, responseHandler) => axios({
   method: 'get',
@@ -55,7 +55,7 @@ const linkConstructor = (pageName, oldLinkAddress) => {
 
 const dataHandler = (page, baseName, targetDir, data) => {
   const $ = cheerio.load(data);
-  const promises = [];
+  const links = [];
 
   tags.forEach((tag) => {
     $(tag.name).each((i, el) => {
@@ -64,25 +64,23 @@ const dataHandler = (page, baseName, targetDir, data) => {
       if (att && linkAddress.hostname === page.hostname) {
         const newfilePath = linkConstructor(baseName, linkAddress);
 
-        promises.push({
-          title: `Downloading ${tag.name} file from ${linkAddress.href}`,
-          task: () => getElement(linkAddress.href,
-            rHandler(path.resolve(targetDir, newfilePath)))
-            .catch((e) => { throw (e); }),
-        });
+        links.push({ oldLink: linkAddress.href, newLink: path.resolve(targetDir, newfilePath) });
 
         $(el).attr(tag.attribute, newfilePath);
       }
     });
   });
-  const tasks = new Listr(promises, { concurrent: true });
 
-  return dataWrite(path.resolve(targetDir, `${baseName}.html`), $.html(), 'utf-8')
-    .then(() => tasks.run())
-    .catch((e) => {
-      debug(`ERROR: Can't create file '${baseName}.html'. ${e.message}`);
-      throw (e);
-    });
+  return [$.html(), links];
+};
+
+const linkHandler = (links) => {
+  const tasks = links.map(({ oldLink, newLink }) => ({
+    title: `Downloading file from ${oldLink}`,
+    task: () => getElement(oldLink, rHandler(newLink)),
+  }));
+  const listR = new Listr(tasks, { concurrent: true });
+  return listR.run();
 };
 
 const pageloader = (address, targetDirectory) => fs.readdir(targetDirectory)
@@ -90,11 +88,17 @@ const pageloader = (address, targetDirectory) => fs.readdir(targetDirectory)
   .then((data) => {
     const pageAddress = new URL(address);
     const baseName = normalizeName(`${pageAddress.host}${pageAddress.pathname}`);
+    const [html, links] = dataHandler(pageAddress, baseName, targetDirectory, data);
 
     return fs.mkdir(path.resolve(targetDirectory, `${baseName}_files`))
-      .then(() => dataHandler(pageAddress, baseName, targetDirectory, data))
+      .then(() => linkHandler(links))
       .catch((e) => {
         debug(`ERROR: Can't create folder '*_files'. ${e.message}`);
+        throw (e);
+      })
+      .then(() => writeData(path.resolve(targetDirectory, `${baseName}.html`), html))
+      .catch((e) => {
+        debug(`ERROR: Can't create file '${baseName}.html'. ${e.message}`);
         throw (e);
       });
   })
