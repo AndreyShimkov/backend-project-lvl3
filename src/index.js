@@ -18,7 +18,7 @@ const writeData = (filepath, data) => fs.writeFile(filepath, data)
     throw (e);
   });
 
-const rHandler = (pathToFile) => (fileData) => writeData(pathToFile, fileData);
+const createHandler = (filepath) => (data) => writeData(filepath, data);
 
 const getElement = (addr, responseHandler) => axios({
   method: 'get',
@@ -34,20 +34,13 @@ const getElement = (addr, responseHandler) => axios({
     throw (e);
   });
 
-const tags = [
-  {
-    name: 'link',
-    attribute: 'href',
-  }, {
-    name: 'img',
-    attribute: 'src',
-  }, {
-    name: 'script',
-    attribute: 'src',
-  },
-];
+const tags = {
+  link: 'href',
+  img: 'src',
+  script: 'src',
+};
 
-const linkConstructor = (pageName, oldLinkAddress) => {
+const linkBuilder = (pageName, oldLinkAddress) => {
   const link = path.parse(oldLinkAddress.pathname);
   const newFileName = normalizeName(`${link.dir.slice(1)}/${link.name}`);
   return `${pageName}_files/${newFileName}${link.ext}`;
@@ -57,16 +50,16 @@ const dataHandler = (page, baseName, targetDir, data) => {
   const $ = cheerio.load(data);
   const links = [];
 
-  tags.forEach((tag) => {
-    $(tag.name).each((i, el) => {
-      const att = $(el).attr(tag.attribute);
-      const linkAddress = new URL(att, page.origin);
-      if (att && linkAddress.hostname === page.hostname) {
-        const newfilePath = linkConstructor(baseName, linkAddress);
+  Object.keys(tags).forEach((tag) => {
+    $(tag).each((i, el) => {
+      const attribute = $(el).attr(tags[tag]);
+      const link = new URL(attribute, page.origin);
+      if (attribute && link.hostname === page.hostname) {
+        const newfilePath = linkBuilder(baseName, link);
 
-        links.push({ oldLink: linkAddress.href, newLink: path.resolve(targetDir, newfilePath) });
+        links.push({ addressLink: link.href, fileLink: path.resolve(targetDir, newfilePath) });
 
-        $(el).attr(tag.attribute, newfilePath);
+        $(el).attr(tags[tag], newfilePath);
       }
     });
   });
@@ -75,36 +68,32 @@ const dataHandler = (page, baseName, targetDir, data) => {
 };
 
 const linkHandler = (links) => {
-  const tasks = links.map(({ oldLink, newLink }) => ({
-    title: `Downloading file from ${oldLink}`,
-    task: () => getElement(oldLink, rHandler(newLink)),
+  const tasks = links.map(({ addressLink, fileLink }) => ({
+    title: `Downloading file from ${addressLink}`,
+    task: () => getElement(addressLink, createHandler(fileLink)),
   }));
   const listR = new Listr(tasks, { concurrent: true });
   return listR.run();
 };
 
 const pageloader = (address, targetDirectory) => fs.readdir(targetDirectory)
-  .then(() => getElement(address, (html) => html))
+  .catch((e) => {
+    debug(`ERROR: Тarget directory does not exist. ${e.message}`);
+    throw (e);
+  })
+  .then(() => getElement(address, (content) => content))
   .then((data) => {
     const pageAddress = new URL(address);
     const baseName = normalizeName(`${pageAddress.host}${pageAddress.pathname}`);
     const [html, links] = dataHandler(pageAddress, baseName, targetDirectory, data);
 
     return fs.mkdir(path.resolve(targetDirectory, `${baseName}_files`))
-      .then(() => linkHandler(links))
       .catch((e) => {
         debug(`ERROR: Can't create folder '*_files'. ${e.message}`);
         throw (e);
       })
-      .then(() => writeData(path.resolve(targetDirectory, `${baseName}.html`), html))
-      .catch((e) => {
-        debug(`ERROR: Can't create file '${baseName}.html'. ${e.message}`);
-        throw (e);
-      });
-  })
-  .catch((e) => {
-    debug(`ERROR: Тarget directory does not exist. ${e.message}`);
-    throw (e);
+      .then(() => linkHandler(links))
+      .then(() => writeData(path.resolve(targetDirectory, `${baseName}.html`), html));
   });
 
 export default pageloader;
